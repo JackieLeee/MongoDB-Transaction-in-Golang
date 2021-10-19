@@ -54,9 +54,9 @@ func main() {
 	//some data will insert
 	students := []interface{}{
 		student{
-			Name:   "Jackson",
+			Name:   "Michael",
 			Gender: "Male",
-			Age:    20,
+			Age:    21,
 		},
 		student{
 			Name:   "Alice",
