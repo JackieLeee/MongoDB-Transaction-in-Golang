@@ -8,6 +8,7 @@ import (
 	"github.com/beego/beego/v2/core/logs"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 // some params for mongo
@@ -15,7 +16,7 @@ const (
 	user     = "root"
 	password = "root"
 	hosts    = "127.0.0.1:27017,127.0.0.1:27018,127.0.0.1:27019"
-	mongoOpt = "replicaSet=rs0&readPreference=secondaryPreferred"
+	mongoOpt = "replicaSet=rs0"
 	auth     = "admin"
 	timeout  = time.Duration(3000) * time.Millisecond
 )
@@ -30,7 +31,10 @@ type student struct {
 func main() {
 	uri := fmt.Sprintf("mongodb://%s:%s@%s/%s?%s",
 		user, password, hosts, auth, mongoOpt)
-	opt := options.Client().ApplyURI(uri).SetSocketTimeout(timeout)
+	opt := options.Client().
+		ApplyURI(uri).
+		SetSocketTimeout(timeout).
+		SetReadPreference(readpref.SecondaryPreferred()) // Read-write separation, read slave library first
 
 	// generate a context
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
