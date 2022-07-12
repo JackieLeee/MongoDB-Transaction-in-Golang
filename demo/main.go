@@ -3,23 +3,24 @@ package main
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/beego/beego/v2/core/logs"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"time"
 )
 
-//some params for mongo
+// some params for mongo
 const (
 	user     = "root"
 	password = "root"
 	hosts    = "127.0.0.1:27017,127.0.0.1:27018,127.0.0.1:27019"
-	mongoOpt = "replicaSet=rs0"
+	mongoOpt = "replicaSet=rs0&readPreference=secondaryPreferred"
 	auth     = "admin"
 	timeout  = time.Duration(3000) * time.Millisecond
 )
 
-//a struct mapping mongo data
+// a struct mapping mongo data
 type student struct {
 	Name   string `bson:"name"`
 	Gender string `bson:"gender"`
@@ -28,21 +29,21 @@ type student struct {
 
 func main() {
 	uri := fmt.Sprintf("mongodb://%s:%s@%s/%s?%s",
-		user, password, hosts, mongoOpt, auth)
+		user, password, hosts, auth, mongoOpt)
 	opt := options.Client().ApplyURI(uri).SetSocketTimeout(timeout)
 
-	//generate a context
+	// generate a context
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	//get a mongo client
+	// get a mongo client
 	client, err := mongo.Connect(ctx, opt)
 	if err != nil {
 		logs.Error("connect mongo failed, err:%s", err.Error())
 		return
 	}
 
-	//ping mongo to valid this mongo connection
+	// ping mongo to valid this mongo connection
 	err = client.Ping(ctx, nil)
 	if err != nil {
 		logs.Error("ping mongo failed, err:%s", err.Error())
@@ -51,7 +52,7 @@ func main() {
 
 	database := "school"
 	collection := "student"
-	//some data will insert
+	// some data will insert
 	students := []interface{}{
 		student{
 			Name:   "Michael",
@@ -65,25 +66,25 @@ func main() {
 		},
 	}
 
-	//insert data to mongo with transaction
+	// insert data to mongo with transaction
 	if err = client.UseSession(ctx, func(sessionContext mongo.SessionContext) error {
-		//start transaction
+		// start transaction
 		if err := sessionContext.StartTransaction(); err != nil {
 			return err
 		}
-		//close transaction before this function return
+		// close transaction before this function return
 		defer sessionContext.EndSession(ctx)
 
-		//batch insert data to mongo
+		// batch insert data to mongo
 		if _, err := client.Database(database).Collection(collection).InsertMany(ctx, students); err != nil {
 			if err := sessionContext.AbortTransaction(sessionContext); err != nil {
-				//if it has some error, we need rollback
+				// if it has some error, we need rollback
 				logs.Error("mongo transaction rollback failed, %s", err.Error())
 				return err
 			}
 			return err
 		}
-		//not error, we should commit this transaction
+		// not error, we should commit this transaction
 		return sessionContext.CommitTransaction(ctx)
 	}); err != nil {
 		logs.Error("insert failed, err:%s", err.Error())
