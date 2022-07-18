@@ -81,7 +81,7 @@ func main() {
 
 		// batch insert data to mongo
 		if _, err := client.Database(database).Collection(collection).InsertMany(ctx, students); err != nil {
-			if err := sessionContext.AbortTransaction(sessionContext); err != nil {
+			if err := sessionContext.AbortTransaction(context.Background()); err != nil {
 				// if it has some error, we need rollback
 				logs.Error("mongo transaction rollback failed, %s", err.Error())
 				return err
@@ -89,7 +89,7 @@ func main() {
 			return err
 		}
 		// not error, we should commit this transaction
-		return sessionContext.CommitTransaction(ctx)
+		return sessionContext.CommitTransaction(context.Background())
 	}); err != nil {
 		logs.Error("insert failed, err:%s", err.Error())
 	}
